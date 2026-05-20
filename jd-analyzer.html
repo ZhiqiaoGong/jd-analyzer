@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Am I a fit?</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F7F8FA;
+  --white: #FFFFFF;
+  --ink: #0D1117;
+  --ink2: #3D4550;
+  --ink3: #7A8694;
+  --ink4: #B8C0CC;
+  --blue: #2563EB;
+  --blue-light: #EFF4FF;
+  --blue-mid: #BFCFFF;
+  --border: #E2E6ED;
+  --border2: #CDD2DB;
+  --red: #DC2626;
+  --red-light: #FEF2F2;
+  --amber: #D97706;
+  --amber-light: #FFFBEB;
+  --green: #059669;
+  --green-light: #ECFDF5;
+  --radius: 10px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Geist', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 52px 24px 80px;
+}
+
+/* Header */
+header { margin-bottom: 44px; }
+
+.eyebrow {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 10px;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.sub {
+  color: var(--ink3);
+  font-size: 13.5px;
+  font-weight: 300;
+}
+
+/* Inputs */
+.inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+@media (max-width: 600px) { .inputs { grid-template-columns: 1fr; } }
+
+.field { display: flex; flex-direction: column; gap: 7px; }
+
+label {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+
+textarea {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-family: 'Geist', sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 13px 15px;
+  resize: vertical;
+  min-height: 210px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+textarea::placeholder { color: var(--ink4); }
+textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+}
+
+/* PDF upload */
+.pdf-upload {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.pdf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--white);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink2);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.pdf-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+.pdf-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+.pdf-name {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--green);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+#resumeFile { display: none; }
+
+/* Run button */
+.run-btn {
+  width: 100%;
+  padding: 13px 24px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'Geist', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  margin-bottom: 36px;
+  letter-spacing: -0.01em;
+}
+.run-btn:hover { opacity: 0.88; }
+.run-btn:active { transform: scale(0.995); }
+.run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Loading */
+.loading {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink3);
+  font-size: 12px;
+  font-family: 'Geist Mono', monospace;
+  margin-bottom: 28px;
+}
+.loading.on { display: flex; }
+.spinner {
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--border2);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Error */
+.err {
+  display: none;
+  background: var(--red-light);
+  border: 1px solid rgba(220,38,38,0.2);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  color: var(--red);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+.err.on { display: block; }
+
+/* Results */
+.results { display: none; flex-direction: column; gap: 16px; }
+.results.on { display: flex; }
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.card-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.card-title {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+
+.card-body { padding: 18px 20px; }
+
+/* Keywords */
+.kws { display: flex; flex-wrap: wrap; gap: 7px; }
+.kw {
+  padding: 4px 11px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-family: 'Geist Mono', monospace;
+  border: 1px solid;
+  letter-spacing: 0.01em;
+}
+.kw.high { background: var(--blue-light); border-color: var(--blue-mid); color: var(--blue); }
+.kw.med  { background: #F0F0FF; border-color: #C4C4F0; color: #5555CC; }
+.kw.low  { background: var(--bg); border-color: var(--border2); color: var(--ink3); }
+
+/* Legend */
+.kw-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--ink3);
+  letter-spacing: 0.06em;
+}
+.legend-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+
+/* Score */
+.score-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+.score-left { flex-shrink: 0; }
+.score-big {
+  font-size: 56px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.score-big.high { color: var(--green); }
+.score-big.med  { color: var(--amber); }
+.score-big.low  { color: var(--red); }
+.score-tag {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+.score-tag.high { color: var(--green); }
+.score-tag.med  { color: var(--amber); }
+.score-tag.low  { color: var(--red); }
+.score-right { flex: 1; padding-top: 6px; }
+.score-bar-bg {
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.score-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.9s ease;
+}
+.score-bar-fill.high { background: var(--green); }
+.score-bar-fill.med  { background: var(--amber); }
+.score-bar-fill.low  { background: var(--red); }
+.score-reason { font-size: 13.5px; color: var(--ink2); line-height: 1.65; }
+
+/* Gaps */
+.gap-list { display: flex; flex-direction: column; gap: 9px; }
+.gap-item {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 11px 14px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  border: 1px solid;
+}
+.gap-item.crit {
+  background: var(--red-light);
+  border-color: rgba(220,38,38,0.18);
+  color: var(--ink);
+}
+.gap-item.minor {
+  background: var(--amber-light);
+  border-color: rgba(217,119,6,0.18);
+  color: var(--ink);
+}
+.gap-pip {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+.gap-item.crit .gap-pip { background: var(--red); }
+.gap-item.minor .gap-pip { background: var(--amber); }
+
+/* Questions */
+.q-list { display: flex; flex-direction: column; gap: 9px; }
+.q-item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 12px 15px;
+  background: var(--bg);
+  border-radius: 7px;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.q-n {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--blue);
+  margin-top: 3px;
+  min-width: 22px;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+
+.footer {
+  margin-top: 48px;
+  text-align: center;
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--ink4);
+  letter-spacing: 0.1em;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">personal tool</div>
+    <h1>am i actually a fit for this?</h1>
+    <p class="sub">paste a JD, drop your resume PDF — find out before you spend two hours on a cover letter.</p>
+  </header>
+
+  <div class="inputs">
+    <div class="field">
+      <label>Job Description</label>
+      <textarea id="jd" placeholder="paste the full JD here..."></textarea>
+    </div>
+    <div class="field">
+      <label>Resume</label>
+      <textarea id="resumeText" placeholder="paste resume text, or upload PDF below..."></textarea>
+      <div class="pdf-upload">
+        <input type="file" id="resumeFile" accept=".pdf">
+        <label class="pdf-btn" for="resumeFile">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 12v1a1 1 0 001 1h8a1 1 0 001-1v-1M8 10V3M5 6l3-3 3 3"/>
+          </svg>
+          upload pdf
+        </label>
+        <span class="pdf-name" id="pdfName"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="run-btn" id="runBtn" onclick="analyze()">analyze →</button>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <span>reading between the lines...</span>
+  </div>
+
+  <div class="err" id="errMsg"></div>
+
+  <div class="results" id="results">
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-icon">🔑</span>
+        <span class="card-title">Key Requirements</span>
+      </div>
+      <div class="card-body">
+        <div class="kws" id="kwContainer"></div>
+        <div class="kw-legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--blue)"></div>must-have
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#5555CC"></div>preferred
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--ink4)"></div>nice-to-have
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-icon">📊</span>
+        <span class="card-title">Match Score</span>
+      </div>
+      <div class="card-body">
+        <div class="score-wrap">
+          <div class="score-left">
+            <div class="score-big" id="scoreNum">—</div>
+            <div class="score-tag" id="scoreTag"></div>
+          </div>
+          <div class="score-right">
+            <div class="score-bar-bg">
+              <div class="score-bar-fill" id="scoreBar" style="width:0%"></div>
+            </div>
+            <p class="score-reason" id="scoreReason"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-icon">⚠️</span>
+        <span class="card-title">Gaps to Address</span>
+      </div>
+      <div class="card-body">
+        <div class="gap-list" id="gapList"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-icon">🎯</span>
+        <span class="card-title">Likely Interview Questions</span>
+      </div>
+      <div class="card-body">
+        <div class="q-list" id="qList"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">lily gong · built with claude api</div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// PDF upload handler
+document.getElementById('resumeFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('pdfName').textContent = '⏳ extracting...';
+  try {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(s => s.str).join(' ') + '\n';
+    }
+    document.getElementById('resumeText').value = text.trim();
+    document.getElementById('pdfName').textContent = '✓ ' + file.name;
+  } catch {
+    document.getElementById('pdfName').textContent = '';
+    document.getElementById('errMsg').textContent = 'Could not read PDF. Try pasting the text instead.';
+    document.getElementById('errMsg').classList.add('on');
+  }
+});
+
+async function analyze() {
+  const jd = document.getElementById('jd').value.trim();
+  const resume = document.getElementById('resumeText').value.trim();
+  const btn = document.getElementById('runBtn');
+  const loading = document.getElementById('loading');
+  const results = document.getElementById('results');
+  const errMsg = document.getElementById('errMsg');
+
+  errMsg.classList.remove('on');
+  results.classList.remove('on');
+
+  if (!jd || !resume) {
+    errMsg.textContent = 'Need both the JD and your resume to continue.';
+    errMsg.classList.add('on');
+    return;
+  }
+
+  btn.disabled = true;
+  loading.classList.add('on');
+
+  const prompt = `You are a sharp, honest career coach. Given a job description and resume, return ONLY a JSON object — no markdown, no explanation:
+
+{
+  "keywords": [{"text": "...", "level": "high"|"med"|"low"}],
+  "score": {"value": 72, "reason": "2-3 honest sentences explaining the score"},
+  "gaps": [{"text": "...", "severity": "crit"|"minor"}],
+  "questions": ["question 1", "question 2"]
+}
+
+Rules:
+- keywords: 8-14 items. high = must-have, med = preferred, low = nice-to-have
+- score: 0-100 integer, be honest not generous
+- gaps: 3-6 items. crit = major missing requirement, minor = would help but not dealbreaker
+- questions: 5-7 realistic questions this specific company would ask, mix behavioral + role-specific
+
+JD:
+${jd}
+
+Resume:
+${resume}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const raw = data.content?.[0]?.text || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    render(parsed);
+
+  } catch (err) {
+    errMsg.textContent = 'Something went wrong — check your connection and try again.';
+    errMsg.classList.add('on');
+  } finally {
+    btn.disabled = false;
+    loading.classList.remove('on');
+  }
+}
+
+function render(d) {
+  // Keywords
+  const kc = document.getElementById('kwContainer');
+  kc.innerHTML = '';
+  (d.keywords || []).forEach(k => {
+    const el = document.createElement('span');
+    el.className = 'kw ' + k.level;
+    el.textContent = k.text;
+    kc.appendChild(el);
+  });
+
+  // Score
+  const v = d.score?.value || 0;
+  const cls = v >= 70 ? 'high' : v >= 45 ? 'med' : 'low';
+  const tag = v >= 70 ? 'strong match' : v >= 45 ? 'partial match' : 'significant gaps';
+  document.getElementById('scoreNum').textContent = v + '%';
+  document.getElementById('scoreNum').className = 'score-big ' + cls;
+  document.getElementById('scoreTag').textContent = tag;
+  document.getElementById('scoreTag').className = 'score-tag ' + cls;
+  document.getElementById('scoreReason').textContent = d.score?.reason || '';
+  const bar = document.getElementById('scoreBar');
+  bar.className = 'score-bar-fill ' + cls;
+  setTimeout(() => bar.style.width = v + '%', 60);
+
+  // Gaps
+  const gl = document.getElementById('gapList');
+  gl.innerHTML = '';
+  (d.gaps || []).forEach(g => {
+    const el = document.createElement('div');
+    el.className = 'gap-item ' + g.severity;
+    el.innerHTML = `<div class="gap-pip"></div><span>${g.text}</span>`;
+    gl.appendChild(el);
+  });
+
+  // Questions
+  const ql = document.getElementById('qList');
+  ql.innerHTML = '';
+  (d.questions || []).forEach((q, i) => {
+    const el = document.createElement('div');
+    el.className = 'q-item';
+    el.innerHTML = `<span class="q-n">Q${i+1}</span><span>${q}</span>`;
+    ql.appendChild(el);
+  });
+
+  results.classList.add('on');
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
